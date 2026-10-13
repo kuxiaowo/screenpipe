@@ -157,11 +157,14 @@ the decision, including after restart. Loading/network failures retain the last
 decision; an explicit false or a missing flag in a successful response disables
 localization without clearing `uiLocale`. The existing PostHog refresh loop picks
 up rollout changes without restarting the app. Build-time generation is unchanged.
-Generated translations are ignored build artifacts. Never pass recorded text,
+The checked-in Chinese catalog is maintained in `locales/`; generated snapshots
+are ignored build artifacts. Never pass recorded text,
 user messages, AI output, executable prompts, or diagnostic logs to these helpers.
 
-Ordinary `dev`, `dev:web`, `dev:tauri`, and `build` commands default to English
-and make no translation requests, even when GT credentials are present.
+In this fork, ordinary `dev`, `dev:web`, `dev:tauri`, and `build` commands default
+to `cached` mode and bundle the checked-in Chinese catalog offline. They make no
+translation requests, even when GT credentials are present. An explicit English
+language choice is retained; `SCREENPIPE_I18N_MODE=off` builds English-only UI.
 
 ```bash
 SCREENPIPE_I18N_MODE=cached bun run dev:web    # use existing translations offline
