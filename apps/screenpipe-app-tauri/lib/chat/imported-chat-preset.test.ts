@@ -17,6 +17,14 @@ const cloud: AIPreset = {
 const jsonl = (...records: object[]) => records.map(r => JSON.stringify(r)).join("\n");
 
 describe("imported chat presets", () => {
+  it("reuses the configured default adapter rather than creating another Codex preset", () => {
+    const local = { ...cloud, id: "codex", provider: "acp", model: "codex-acp",
+      acpAgent: { id: "codex-acp", command: "node", args: ["installed-codex-acp.js"],
+        env: { CODEX_PATH: "installed-codex.exe" }, config: { model: "gpt-6.1-sol", reasoning_effort: "high" } },
+    } as AIPreset;
+    expect(resolveImportedChatPreset(codex, [local], true)).toEqual({ preset: local, created: false });
+    expect(local.acpAgent?.config?.model).toBe("gpt-6.1-sol");
+  });
   it("creates a Codex account preset with the transcript's model and effort without changing the default", () => {
     const result = resolveImportedChatPreset(codex, [cloud], true)!;
     expect(result.created).toBe(true);

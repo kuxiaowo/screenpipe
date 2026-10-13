@@ -6,6 +6,11 @@ import { describe, expect, it } from "vitest";
 import { acpSpawnSignature } from "@/lib/chat/acp-spawn-signature";
 
 describe("acpSpawnSignature", () => {
+  it("keeps the same native process when persisted empty launch fields are normalized", () => {
+    expect(acpSpawnSignature({ id: "codex-acp" })).toBe(acpSpawnSignature({
+      id: "codex-acp", command: "", args: [], env: {}, useScreenpipeCloud: false,
+    }));
+  });
   it("is stable across config / modeId / authMethod changes (a config tweak must not respawn)", () => {
     const base = { id: "claude-acp", command: null, args: ["--acp"], env: { X: "1" } };
     const a = acpSpawnSignature({ ...base, config: { model: "sonnet" }, modeId: "manual" } as never);

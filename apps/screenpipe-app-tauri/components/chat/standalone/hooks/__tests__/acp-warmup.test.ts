@@ -184,4 +184,24 @@ describe("ACP warmup fires exactly when it should", () => {
     await waitFor(() => expect(piStartInFlightRef.current).toBe(false));
     expect(setPiStarting).toHaveBeenLastCalledWith(false);
   });
+
+  it("releases the guard after a cancelled handshake settles so the next message can send", async () => {
+    let resolveStart: (value: any) => void = () => {};
+    warmupMocks.piStart.mockReset().mockReturnValue(new Promise(resolve => { resolveStart = resolve; }));
+    const guard = { current: false };
+    const setPiStarting = vi.fn();
+    const { rerender } = renderHook(({ enabled }) => useAcpWarmup({
+      enabled, activePreset: { id: "codex", provider: "acp", acpAgent: { id: "codex-acp" } } as any,
+      piInfo: null, piStartInFlightRef: guard, piSessionIdRef: { current: "chat" },
+      piProjectDirForSession: async () => "C:/tmp/chat", buildProviderConfig: () => ({ provider: "acp" } as any),
+      userToken: null, setPiInfo: vi.fn(), setPiStarting,
+      setRunningConfigFromProviderConfig: vi.fn(), syncThinkingLevelAfterStart: vi.fn(),
+    }), { initialProps: { enabled: true } });
+    await waitFor(() => expect(warmupMocks.piStart).toHaveBeenCalledOnce());
+    rerender({ enabled: false });
+    expect(guard.current).toBe(true);
+    await act(async () => resolveStart({ status: "ok", data: { running: true } }));
+    await waitFor(() => expect(guard.current).toBe(false));
+    expect(setPiStarting).toHaveBeenLastCalledWith(false);
+  });
 });

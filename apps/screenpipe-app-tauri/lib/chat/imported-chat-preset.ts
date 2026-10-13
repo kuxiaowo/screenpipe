@@ -21,6 +21,14 @@ export function resolveImportedChatPreset(
   const source = conversation.importedFrom;
   if (!source || !allowAgentPresets) return undefined;
   const agentId = source.source === "codex" ? "codex-acp" : "claude-acp";
+  // Importing history must not multiply a user's configured local agent.
+  // Historical turn settings remain on importedFrom; new replies use the
+  // explicitly selected default, including its installed adapter command.
+  const localDefault = presets.find(preset => preset.defaultPreset
+    && preset.provider === "acp" && preset.acpAgent?.id === agentId
+    && !preset.acpAgent.useScreenpipeCloud
+    && preset.acpAgent.approvalMode !== "allow-all");
+  if (localDefault) return { preset: localDefault, created: false };
   // Older Claude imports already kept message.model; use it without requiring
   // a reimport. Missing metadata stays unset so the adapter chooses its default.
   const model = source.config?.model ?? conversation.messages?.slice().reverse().find(

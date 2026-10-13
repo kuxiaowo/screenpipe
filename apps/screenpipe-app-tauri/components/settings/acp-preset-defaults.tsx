@@ -181,6 +181,10 @@ export function AcpPresetDefaults({
   // hold off rather than discovering it mid-install.
   useEffect(() => {
     if (advertised || !probeable) return;
+    if (agent.command?.trim()) {
+      setDownloadPending(false);
+      return;
+    }
     let cancelled = false;
     void commands
       .piAcpAgentDownloadPending(agentId)
@@ -195,7 +199,7 @@ export function AcpPresetDefaults({
     return () => {
       cancelled = true;
     };
-  }, [agentId, advertised, probeable]);
+  }, [agentId, agent.command, advertised, probeable]);
 
   useEffect(() => {
     if (advertised || !probeable) return;

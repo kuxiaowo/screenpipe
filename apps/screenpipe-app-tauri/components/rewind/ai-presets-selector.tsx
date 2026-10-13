@@ -2279,7 +2279,7 @@ export const AIPresetsSelector = ({
                             </span>
                             <span className="truncate max-w-[120px]">
                               {preset.provider === "acp"
-                                ? acpAdapterInfo(preset.acpAgent?.id).name
+                                ? [acpAdapterInfo(preset.acpAgent?.id).name, preset.acpAgent?.config?.model, preset.acpAgent?.config?.reasoning_effort].filter(Boolean).join(" · ")
                                 : preset.model}
                             </span>
                           </div>

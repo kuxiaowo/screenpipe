@@ -14,10 +14,26 @@ function jsonl(records: unknown[]): string {
 }
 
 describe("external agent chat parsers", () => {
+  it("does not re-import Screenpipe-owned Codex sidecars as external chats", () => {
+    const conversation = parseCodexTranscript(jsonl([
+      { type: "session_meta", payload: { id: "sidecar", cwd: "C:\\Users\\admin\\.screenpipe\\pi-chat" } },
+      { type: "response_item", payload: { type: "message", role: "user", content: [{ type: "input_text", text: "hello" }] } },
+    ]), { sourceId: "sidecar", fallbackTimestamp: 1 });
+    expect(conversation).toBeNull();
+  });
   const codexSetup = "<recommended_plugins>\nExample plugin list\n</recommended_plugins>\n<environment_context>\nExample environment\n</environment_context>";
   const codexUser = (text: string) => ({
     type: "response_item",
     payload: { type: "message", role: "user", content: [{ type: "input_text", text }] },
+  });
+
+  it("filters desktop page metadata and uses the official indexed title", () => {
+    const conversation = parseCodexTranscript(jsonl([
+      codexUser('<external_codex_apps_open_page>{"page_id":null}</external_codex_apps_open_page>'),
+      codexUser('<in-app-browser-context source="ambient-ui-state">browser state</in-app-browser-context>\n请整理课程'),
+    ]), { sourceId: "desktop", fallbackTimestamp: 1, explicitTitle: "课程录音助手" });
+    expect(conversation?.title).toBe("课程录音助手");
+    expect(conversation?.messages.map(message => message.content)).toEqual(["请整理课程"]);
   });
 
   it.each([

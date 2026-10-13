@@ -3842,6 +3842,7 @@ pub async fn pi_start_inner(
             pid, sid_clone
         );
         let mut line_count = 0u64;
+        let trace_agent_events = std::env::var_os("SCREENPIPE_TRACE_AGENT_EVENTS").is_some();
         let mut ready_signalled = false;
         let mut pending_text_delta: Option<PendingAgentTextDelta> = None;
         while let Some(line) = read_lines_lossy(&mut reader) {
@@ -3853,6 +3854,14 @@ pub async fn pi_start_inner(
                     .and_then(|t| t.as_str())
                     .map(|s| s.to_string())
             });
+            if trace_agent_events {
+                info!(
+                    "Agent event trace: session={} sequence={} type={}",
+                    sid_clone,
+                    line_count,
+                    event_type.as_deref().unwrap_or("non-json")
+                );
+            }
             debug!(
                 "Pi stdout #{} (pid {}, session {}): type={}",
                 line_count,

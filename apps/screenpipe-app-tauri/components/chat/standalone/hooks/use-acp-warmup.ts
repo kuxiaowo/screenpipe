@@ -68,6 +68,11 @@ export function useAcpWarmup({
   const agentId = activePreset?.acpAgent?.id;
   const sessionId = piSessionIdRef.current;
   const runningForSessionRef = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
   runningForSessionRef.current = Boolean(
     piInfo?.running && (!piInfo.sessionId || piInfo.sessionId === sessionId),
   );
@@ -111,8 +116,10 @@ export function useAcpWarmup({
       } catch {
         // Swallowed on purpose — see the doc comment.
       } finally {
-        if (!cancelled) {
-          piStartInFlightRef.current = false;
+        // Cleanup suppresses stale React updates, but the settled handshake
+        // must still release the shared guard or later sends remain blocked.
+        piStartInFlightRef.current = false;
+        if (mountedRef.current) {
           setPiStarting(false);
         }
       }
@@ -120,10 +127,9 @@ export function useAcpWarmup({
 
     return () => {
       cancelled = true;
-      // Release the guard so a send issued during warmup can start its own
-      // attempt rather than deadlocking behind an abandoned one.
-      piStartInFlightRef.current = false;
-      setPiStarting(false);
+      // The native handshake still owns this guard. Releasing it here lets
+      // a preset change start/restart the same process before it is ready.
+      // finally releases it when the original RPC actually settles.
     };
     // `activePreset` identity churns; the session/id/provider/agent tuple is
     // what actually decides whether a different runtime needs warming. Do not

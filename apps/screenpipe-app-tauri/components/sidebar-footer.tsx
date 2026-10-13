@@ -26,6 +26,10 @@ export function SidebarFooter({ onSettings, onHelp, onKeyboardShortcuts, isTrans
   trialActivationLocked?: boolean;
 }) {
   const ui = useGT();
+  // Localize only built-in labels; real team/organization names are user content.
+  const teamLabel = teamEntry?.kind === "signed-out" || teamEntry?.kind === "no-team"
+    ? ui("Invite your team")
+    : teamEntry?.kind === "unavailable" ? ui("Team") : teamEntry?.label;
   const openFeedback = useFeedbackStore((s) => s.openFeedback);
   const itemStyle = isTranslucent ? "vibrant-nav-item vibrant-nav-hover" : "text-muted-foreground hover:bg-card/50 hover:text-foreground";
   const helpButton = <button type="button" data-testid="nav-help" data-announcement-anchor="sidebar-help" aria-label={ui("Help")}
@@ -52,12 +56,12 @@ export function SidebarFooter({ onSettings, onHelp, onKeyboardShortcuts, isTrans
     <TooltipContent side="top" className="text-xs">Send feedback</TooltipContent>
   </Tooltip>;
   return <div className={cn("space-y-1 border-t pt-2", isTranslucent ? "vibrant-sidebar-border" : "border-border")}>
-    {teamEntry && onTeam && <TeamInvitePopover key={`${teamToken}:${teamEntry.kind}:${teamEntry.teamId}:${teamEntry.canInvite}`} entry={teamEntry} token={teamToken} onManage={onTeam}><button type="button" data-testid="nav-team" title={teamEntry.label}
-      aria-label={ui("{name}, team menu", { name: teamEntry.label })}
+    {teamEntry && onTeam && <TeamInvitePopover key={`${teamToken}:${teamEntry.kind}:${teamEntry.teamId}:${teamEntry.canInvite}`} entry={teamEntry} token={teamToken} onManage={onTeam}><button type="button" data-testid="nav-team" title={teamLabel}
+      aria-label={ui("{name}, team menu", { name: teamLabel })}
       disabled={trialActivationLocked}
       className={cn("flex w-full min-w-0 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-all duration-150", itemStyle, trialActivationLocked && "cursor-not-allowed")}>
       <Users className="h-3.5 w-3.5 shrink-0" />
-      <span className="min-w-0 flex-1 truncate text-xs font-medium">{teamEntry.label}</span>
+      <span className="min-w-0 flex-1 truncate text-xs font-medium">{teamLabel}</span>
       <ChevronUp className="h-3 w-3 shrink-0 opacity-60" />
     </button></TeamInvitePopover>}
     <div className="flex items-center gap-1">
