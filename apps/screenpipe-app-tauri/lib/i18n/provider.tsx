@@ -44,7 +44,7 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
     return () => { active = false; window.removeEventListener("languagechange", update); };
   }, []);
   const configured = typeof settings.uiLocale === "string" ? settings.uiLocale : "system";
-  const rolloutEnabled = settings.uiLocalizationEnabled === true;
+  const rolloutEnabled = locales.includes("zh-CN") || settings.uiLocalizationEnabled === true;
   const enabled = rolloutEnabled && locales.length > 0;
   const locale = enabled ? resolveLocale(configured, system, bundledLocales, defaultLocale) : defaultLocale;
   useEffect(() => {
@@ -63,6 +63,7 @@ export function LocalizationProvider({ children }: { children: ReactNode }) {
 }
 
 export function localeName(locale: string) {
+  if (locale === "zh-CN") return "简体中文";
   const name = getLocaleProperties(locale).nativeName;
   return name.charAt(0).toLocaleUpperCase(locale) + name.slice(1);
 }

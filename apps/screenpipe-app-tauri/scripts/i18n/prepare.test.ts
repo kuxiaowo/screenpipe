@@ -38,10 +38,10 @@ async function fixture() {
   return { root, source, calls, run };
 }
 
-test("off is the default and never invokes GT even with credentials", async () => {
+test("cached is the default; explicit off never invokes GT even with credentials", async () => {
   const { root, run, calls } = await fixture();
   process.env.GT_API_KEY = "test-only"; process.env.GT_PROJECT_ID = "test-only";
-  expect(localizationMode(undefined)).toBe("off");
+  expect(localizationMode(undefined)).toBe("cached");
   expect(() => localizationMode("enabled")).toThrow();
   const result = await prepareLocalization({ root, config, mode: "off", run });
   expect(calls).toEqual([]);
@@ -57,6 +57,21 @@ test("cached invokes only offline extraction and preserves valid translations", 
   expect(f.calls).toEqual(["generate"]);
   expect(result.translations.ja.toast).toBe("こんにちは、{name}さん");
   expect(result.coverage.ja.frontend.translated).toBe(3);
+});
+
+test("checked-in Chinese catalogs work offline and reject broken placeholders", async () => {
+  const f = await fixture();
+  const chineseConfig = { ...config, locales: ["zh-CN"] };
+  await writeJson(path.join(f.root, "locales/zh-CN.json"), {
+    frontend: { title: "设置", toast: "你好，{name}", changed: "错误的 {unexpected} 占位符" },
+    native: {},
+  });
+  const result = await prepareLocalization({ ...f, config: chineseConfig, mode: "cached" });
+  expect(f.calls).toEqual(["generate"]);
+  expect(result.translations["zh-CN"].title).toBe("设置");
+  expect(result.translations["zh-CN"].toast).toBe("你好，{name}");
+  expect(result.translations["zh-CN"].changed).toBeUndefined();
+  expect(result.fallbacks["zh-CN"].changed).toBe("invalid_placeholders");
 });
 
 test("permission descriptions produce locale resources and off removes stale languages", async () => {

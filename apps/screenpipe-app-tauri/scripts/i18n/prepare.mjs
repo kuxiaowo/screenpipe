@@ -80,7 +80,7 @@ export async function extractNative(root, policy = translationPolicy) {
       const id = digest(english).slice(0, 16);
       if (messages[id] && messages[id] !== english) throw new Error("Native localization hash collision");
       messages[id] = english;
-      metadata[id] = { context: `Native desktop interface: ${file}` };
+      metadata[id] = { context: `Native desktop interface: ${file.replaceAll("\\", "/")}` };
     }
   }
   for (const [key, english] of Object.entries(await permissionDescriptions(root))) {
@@ -199,12 +199,15 @@ export async function prepareLocalization({ root = appRoot, mode = localizationM
   const downloaded = base.causes.includes("generated");
   base.causes = base.causes.filter((cause) => cause !== "generated");
   for (const locale of config.locales) {
+    // Checked-in catalogs make local builds reproducible without GT credentials.
+    // Validate against the freshly extracted source before bundling any entry.
+    const bundled = await readJson(path.join(root, "locales", `${locale}.json`));
     const gt = downloaded ? await readJson(path.join(dir, "gt", `${locale}.json`)) : {};
     const nativeGt = downloaded ? await readJson(path.join(dir, "native", `${locale}.json`)) : {};
     const validDownload = validateCatalog(source, gt, config.defaultLocale, locale);
     const validNativeDownload = validateCatalog(native.messages, nativeGt, config.defaultLocale, locale);
-    const frontend = validateCatalog(source, { ...cache?.translations?.[locale], ...validDownload.valid }, config.defaultLocale, locale);
-    const nativeResult = validateCatalog(native.messages, { ...cache?.native?.[locale], ...validNativeDownload.valid }, config.defaultLocale, locale);
+    const frontend = validateCatalog(source, { ...cache?.translations?.[locale], ...validDownload.valid, ...bundled.frontend }, config.defaultLocale, locale);
+    const nativeResult = validateCatalog(native.messages, { ...cache?.native?.[locale], ...validNativeDownload.valid, ...bundled.native }, config.defaultLocale, locale);
     // Rejected entries are deliberately absent from the valid cache. Keep their
     // technical cause while that same source hash still falls back after a
     // restart/offline rebuild, instead of degrading it to "missing".

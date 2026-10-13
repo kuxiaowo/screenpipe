@@ -6,8 +6,10 @@ import { useEffect, useRef } from "react";
 import posthog from "posthog-js";
 import { useSettings } from "@/lib/hooks/use-settings";
 import { isPrimaryWindow } from "@/lib/utils/is-primary-window";
+import bundled from "@/lib/i18n/generated.json";
 
 export const LOCALIZATION_FLAG = "desktop-localization";
+const localChineseAvailable = (bundled as { locales: string[] }).locales.includes("zh-CN");
 
 /** Persist one resolved rollout decision for every webview and native surface. */
 export function LocalizationRolloutSync({ ready }: { ready: boolean }) {
@@ -17,6 +19,17 @@ export function LocalizationRolloutSync({ ready }: { ready: boolean }) {
 
   useEffect(() => {
     if (!ready || !isSettingsLoaded || !isPrimaryWindow()) return;
+    // The Chinese local distribution owns availability. Remote rollout flags
+    // must not hide its offline language selector or revert its native menus.
+    if (localChineseAvailable) {
+      if (settings.uiLocalizationEnabled !== true) {
+        void updateSettings({
+          uiLocalizationEnabled: true,
+          ...(settings.uiLocale === "system" ? { uiLocale: "zh-CN" } : {}),
+        }).catch((error) => console.error("[localization] failed to enable bundled languages", error));
+      }
+      return;
+    }
     let cancelled = false;
     let pending = Promise.resolve();
     const unsubscribe = posthog.onFeatureFlags((_keys, variants, context) => {
