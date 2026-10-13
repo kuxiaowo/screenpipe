@@ -8,7 +8,8 @@ export const appRoot = fileURLToPath(new URL("../../", import.meta.url));
 export const gtConfig = JSON.parse(readFileSync(new URL("../../gt.config.json", import.meta.url), "utf8"));
 
 export function localizationMode(value = process.env.SCREENPIPE_I18N_MODE) {
-  const mode = value ?? "off";
+  // This fork ships reviewed offline catalogs; ordinary builds must include them.
+  const mode = value ?? "cached";
   if (!["off", "cached", "generate"].includes(mode)) {
     throw new Error(`Invalid SCREENPIPE_I18N_MODE: ${mode}`);
   }

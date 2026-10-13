@@ -139,6 +139,11 @@ the live app; see [`docs/macos-dev-builds.md`](../../docs/macos-dev-builds.md).
 
 ## localization integration
 
+This fork bundles Simplified Chinese (`zh-CN`) and English offline by default.
+It does not require the upstream PostHog rollout flag or GT credentials. See
+[`locales/README.md`](locales/README.md) for the local catalog and validation workflow.
+The Japanese rollout below describes the upstream pilot, not this fork's bundled locales.
+
 `gt.config.json` owns the source language and bundled languages. The initial
 pilot is Japanese (`ja`), behind the PostHog flag `desktop-localization`.
 The flag defaults off: the app stays English and hides the language selector.
