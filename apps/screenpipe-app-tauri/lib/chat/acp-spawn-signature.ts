@@ -24,9 +24,9 @@ export function acpSpawnSignature(
   if (!acpAgent) return null;
   return JSON.stringify({
     id: acpAgent.id ?? null,
-    command: acpAgent.command ?? null,
-    args: acpAgent.args ?? null,
-    env: acpAgent.env ?? null,
-    useScreenpipeCloud: acpAgent.useScreenpipeCloud ?? null,
+    command: acpAgent.command?.trim() || null,
+    args: acpAgent.args ?? [],
+    env: Object.fromEntries(Object.entries(acpAgent.env ?? {}).sort(([a], [b]) => a.localeCompare(b))),
+    useScreenpipeCloud: acpAgent.useScreenpipeCloud === true,
   });
 }

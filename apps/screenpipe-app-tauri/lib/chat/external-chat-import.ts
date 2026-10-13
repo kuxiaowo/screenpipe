@@ -441,6 +441,28 @@ export async function importExternalChatHistory(
     failed: 0,
   };
 
+  // Codex stores desktop titles separately from its append-only transcripts.
+  // Read each local index once per batch; missing indexes retain text fallback.
+  const titlesByRoot = new Map<string, Map<string, string>>();
+  for (const candidate of candidates) {
+    if (candidate.source !== "codex") continue;
+    const root = candidate.path.replace(/\\/g, "/").match(/^(.*\/\.codex)\/sessions\//)?.[1];
+    if (!root || titlesByRoot.has(root)) continue;
+    const titles = new Map<string, string>();
+    titlesByRoot.set(root, titles);
+    try {
+      const index = await readTextFile(await join(root, "session_index.jsonl"));
+      for (const line of index.split(/\r?\n/)) {
+        try {
+          const row = JSON.parse(line);
+          if (typeof row.id === "string" && typeof row.thread_name === "string" && row.thread_name.trim()) {
+            titles.set(row.id, row.thread_name.trim());
+          }
+        } catch { /* A concurrently appended final line may be incomplete. */ }
+      }
+    } catch { /* Older clients may not have a title index. */ }
+  }
+
   for (const candidate of candidates) {
     try {
       if (candidate.maintenance === "remove-screenpipe-background-import") {
@@ -463,6 +485,11 @@ export async function importExternalChatHistory(
       const snapshot = parseExternalChatTranscriptSnapshot(candidate.source, jsonl, {
         sourceId: candidate.sourceId,
         fallbackTimestamp: candidate.modifiedAt || Date.now(),
+        explicitTitle: candidate.source === "codex"
+          ? titlesByRoot.get(candidate.path.replace(/\\/g, "/").match(/^(.*\/\.codex)\/sessions\//)?.[1] ?? "")?.get(
+            candidate.sourceId.match(/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i)?.[0] ?? candidate.sourceId,
+          )
+          : undefined,
       });
       const conversation = snapshot.conversation;
       if (!conversation) {

@@ -33,6 +33,7 @@ import {
   enqueuePiPresetSwitch,
   usePiSessionLifecycle,
 } from "../use-pi-session-lifecycle";
+import { buildSystemPrompt } from "@/lib/chat/system-prompt";
 import {
   awaitPiStartInFlight,
   awaitPendingPiPresetSwitch,
@@ -62,6 +63,42 @@ describe("preset switch serialization", () => {
     commandMocks.piStop.mockResolvedValue({ status: "ok", data: stoppedInfo });
     commandMocks.piRequestState.mockResolvedValue({ status: "ok", data: null });
     commandMocks.piGetThinkingLevel.mockResolvedValue({ status: "ok", data: "off" });
+  });
+
+  it("does not restart ACP when the clock advances and collaboration mode changes", async () => {
+    const actual = await vi.importActual<typeof import("@/lib/chat/system-prompt")>("@/lib/chat/system-prompt");
+    vi.mocked(buildSystemPrompt).mockImplementation(actual.buildSystemPrompt);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-12T14:00:00Z"));
+    const preset = { id: "codex", provider: "acp", model: "codex-acp", apiKey: null,
+      maxTokens: 4096, acpAgent: { id: "codex-acp", config: { model: "gpt-6.1-sol" } },
+    } as any;
+    const running = { current: null as any };
+    const switching = { current: null as Promise<void> | null };
+    const { result, unmount } = renderHook(() => usePiSessionLifecycle({
+      activePreset: preset, setActivePreset: vi.fn(), aiPresets: [preset], isSettingsLoaded: false,
+      shouldFreezePresetSelection: false, userToken: null, appItems: [], allConnectionItems: [], connections: [],
+      piInfo: runningInfo, setPiInfo: vi.fn(), isStreaming: false, isStreamingRef: { current: false },
+      piSessionIdRef: { current: "session-1" }, piSessionSyncedRef: { current: true },
+      piMessageIdRef: { current: null }, piRunningConfigRef: running,
+      piIntentionallyStoppedPidsRef: { current: new Set<number>() }, piStoppedIntentionallyRef: { current: false },
+      piPresetSwitchPromiseRef: switching,
+    }));
+    try {
+      const first = result.current.buildProviderConfig(preset)!;
+      result.current.setRunningConfigFromProviderConfig(first);
+      vi.setSystemTime(new Date("2026-10-12T14:05:00Z"));
+      const changed = { ...preset, acpAgent: { ...preset.acpAgent,
+        config: { ...preset.acpAgent.config, collaboration_mode: "plan" } } };
+      expect(result.current.buildProviderConfig(changed)?.systemPrompt).toBe(first.systemPrompt);
+      act(() => result.current.handlePiRestart(changed));
+      expect(commandMocks.piStop).not.toHaveBeenCalled();
+      expect(switching.current).toBeNull();
+    } finally {
+      unmount();
+      vi.useRealTimers();
+      vi.mocked(buildSystemPrompt).mockImplementation(() => "system");
+    }
   });
 
   it("keeps the original switch rejection observable while restoring UI state", async () => {

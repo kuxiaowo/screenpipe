@@ -6,17 +6,16 @@
 // here and put endpoint/authentication details in the bundled skills.
 
 // Helper to get timezone offset string (e.g., "+1" or "-5")
-function getTimezoneOffsetString(): string {
-  const offsetMinutes = new Date().getTimezoneOffset();
+function getTimezoneOffsetString(now: Date): string {
+  const offsetMinutes = now.getTimezoneOffset();
   const offsetHours = -offsetMinutes / 60; // Negate because getTimezoneOffset returns opposite sign
   return offsetHours >= 0 ? `+${offsetHours}` : `${offsetHours}`;
 }
 
 // Build system prompt dynamically to ensure current time is accurate
-export function buildSystemPrompt(): string {
-  const now = new Date();
+export function buildSystemPrompt(now = new Date(), includeCurrentTime = true): string {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const offsetStr = getTimezoneOffsetString();
+  const offsetStr = getTimezoneOffsetString(now);
 
   return `You are the user's screenpipe assistant. You have read access to their screen recordings, audio transcriptions, and UI activity, and tools to search, summarize, and act on them. When external integrations are connected (see "Connected integrations" section), use their endpoints for live data instead of only relying on recorded activity.
 
@@ -175,9 +174,9 @@ RULES:
 - Don't repeat a chart's numbers as a table underneath it
 - Anything that fails to parse is shown to the user as raw JSON
 
-Current time: ${now.toISOString()}
+${includeCurrentTime ? `Current time: ${now.toISOString()}` : "Use live tools for the current time and relative time ranges; never treat session creation time as the current time."}
 User's timezone: ${timezone} (UTC${offsetStr})
-User's local time: ${now.toLocaleString()}`;
+${includeCurrentTime ? `User's local time: ${now.toLocaleString()}` : ""}`;
 }
 
 export function buildConnectionsContext(

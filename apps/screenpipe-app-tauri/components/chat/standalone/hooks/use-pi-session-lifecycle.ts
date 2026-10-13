@@ -191,7 +191,9 @@ export function usePiSessionLifecycle({
     const p = applyResolvedModelLimits(selectedPreset);
     const presetPrompt = p.prompt || "";
     const isAcp = p.provider === "acp";
-    const connectionsCtx = buildConnectionsContext(connections);
+    // Live connection status and the clock must not change ACP's process
+    // identity. ACP already queries current context through its MCP tools.
+    const connectionsCtx = isAcp ? "" : buildConnectionsContext(connections);
     // App-awareness ("currently looking at app X") drifts continuously as the
     // screen is used. Baking it into an ACP adapter's spawn-time system
     // prompt would make the prompt churn and trigger adapter respawns; ACP
@@ -203,7 +205,7 @@ export function usePiSessionLifecycle({
           apps: appItems,
           connections: allConnectionItems,
         });
-    const systemPrompt = `${buildSystemPrompt()}\n\n${presetPrompt}${connectionsCtx}${appAwarenessCtx}`.trim() || null;
+    const systemPrompt = `${buildSystemPrompt(undefined, !isAcp)}\n\n${presetPrompt}${connectionsCtx}${appAwarenessCtx}`.trim() || null;
     // Reopen-time resume: only on a cold start (no agent running for this
     // chat) do we ask the runtime to reattach to the chat's prior ACP
     // session. Mid-session respawns (model switches via new_session) must

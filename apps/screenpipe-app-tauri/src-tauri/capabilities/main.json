@@ -87,6 +87,9 @@
         },
         {
           "url": "^codex://automations(?:\\?.*)?$"
+        },
+        {
+          "url": "^codex://$"
         }
       ]
     },

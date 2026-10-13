@@ -5153,7 +5153,9 @@ pub(super) async fn run_from_env_with_observer(
     // Every adapter reports the same startup lifecycle. A cold npx launch adds
     // install before start/connect; binary and cached adapters begin at start.
     // Cleared at acp_ready. stderr below corrects the best-effort cache guess.
-    let initial_boot_phase = if agent_download_pending(&config.agent_id) {
+    let catalog_launch = builtin_agent(&config.agent_id, &config.bun_path)
+        .is_some_and(|(command, args)| command == config.command && args == config.args);
+    let initial_boot_phase = if catalog_launch && agent_download_pending(&config.agent_id) {
         "downloading"
     } else {
         "starting"

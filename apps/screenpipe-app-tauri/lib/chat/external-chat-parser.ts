@@ -11,6 +11,7 @@ export interface ExternalChatParseOptions {
   sourceId: string;
   fallbackTimestamp: number;
   importedAt?: number;
+  explicitTitle?: string;
 }
 
 export interface ExternalChatTurnState {
@@ -460,7 +461,7 @@ const CODEX_FILES_SECTION = "# Files mentioned by the user:";
 const CODEX_REQUEST_HEADING = /^## My request:\s*$/m;
 
 function stripCodexSetupBlocks(text: string): string {
-  const setupBlock = /^<(recommended_plugins|environment_context)>[\s\S]*?<\/\1>\s*/;
+  const setupBlock = /^<(recommended_plugins|environment_context|external_codex_apps_open_page|in-app-browser-context)(?:\s[^>]*)?>[\s\S]*?<\/\1>\s*/;
   let clean = text;
   while (setupBlock.test(clean)) {
     clean = clean.replace(setupBlock, "").trimStart();
@@ -636,6 +637,13 @@ function parseCodexTranscriptSnapshot(
     }
 
     if (recordType === "session_meta") {
+      const cwd = asString(payload.cwd)?.replace(/\\/g, "/");
+      // Screenpipe already stores its own interactive chats. Re-importing
+      // their Codex sidecar creates a second writer and restores a new preset
+      // into the active chat while its first reply is still arriving.
+      if (cwd && /\/\.screenpipe\/(?:pi-chat|pi-daily-summary|pi-title)(?:\/|$)/i.test(cwd)) {
+        return { conversation: null, turnState: { isLoading: false, isStreaming: false } };
+      }
       sessionId = asString(payload.id) ?? asString(payload.session_id) ?? sessionId;
       continue;
     }
@@ -747,6 +755,8 @@ function parseCodexTranscriptSnapshot(
     conversation: finishConversation({
       source: "codex",
       sourceId: sessionId,
+      explicitTitle: options.explicitTitle,
+      titleSource: options.explicitTitle ? "ai" : undefined,
       config,
       messages,
       fallbackTimestamp,

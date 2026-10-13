@@ -1400,6 +1400,7 @@ function CodexPanel({ onConnected, onDisconnected }: { onConnected?: () => void;
     try {
       const os = platform();
       if (os === "macos") await Command.create("open-app", ["-a", "Codex"]).execute();
+      else if (os === "windows") await openUrl("codex://");
       else await openUrl("https://chatgpt.com/codex");
     } catch { await openUrl("https://chatgpt.com/codex"); }
   };

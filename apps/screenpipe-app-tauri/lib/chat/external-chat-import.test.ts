@@ -236,6 +236,20 @@ describe("scanExternalChatHistory", () => {
     expect(await importExternalChatHistory([candidate], { skipUnchanged: true })).toMatchObject({ updated: 0, skipped: 1 });
   });
 
+  it("imports the desktop title by session UUID from the local Codex index", async () => {
+    const id = "01a12e2b-82c9-7d22-8f1c-21ecd782d527";
+    const path = `/fixture/.codex/sessions/2026/10/12/rollout-2026-10-12-${id}.jsonl`;
+    const transcript = JSON.stringify({ type: "session_meta", payload: { id } }) + "\n" + JSON.stringify({
+      type: "response_item", payload: { type: "message", role: "user", content: [{ type: "input_text", text: "first request" }] },
+    });
+    mocks.stat.mockResolvedValue({ size: 1024 });
+    mocks.loadConversationFile.mockResolvedValue(null);
+    mocks.readTextFile.mockImplementation(async (file: string) => file.endsWith("session_index.jsonl")
+      ? `${JSON.stringify({ id, thread_name: "Official desktop title" })}\n{` : transcript);
+    await importExternalChatHistory([{ source: "codex", path, sourceId: `rollout-2026-10-12-${id}`, modifiedAt: 1, size: 1024 }]);
+    expect(mocks.saveConversationFile.mock.calls[0][0].title).toBe("Official desktop title");
+  });
+
   it("broadcasts active and completed Codex turn state even when disk content is unchanged", async () => {
     const userAt = Date.parse("2026-08-27T15:00:02Z");
     const toolAt = Date.parse("2026-08-27T15:00:03Z");

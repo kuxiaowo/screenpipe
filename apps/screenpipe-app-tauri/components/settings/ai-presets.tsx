@@ -2128,7 +2128,7 @@ function SortablePresetCard({
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className="font-mono bg-muted px-1.5 py-0.5 rounded truncate max-w-[180px]" title={preset.provider === "acp" ? preset.acpAgent?.id : (preset.model || ui("Not set"))}>
             {preset.provider === "acp"
-              ? localizeDefinitions(ACP_ADAPTERS, uiMessages).find((adapter) => adapter.id === preset.acpAgent?.id)?.name || preset.acpAgent?.id || ui("No agent")
+              ? [localizeDefinitions(ACP_ADAPTERS, uiMessages).find((adapter) => adapter.id === preset.acpAgent?.id)?.name || preset.acpAgent?.id || ui("No agent"), preset.acpAgent?.config?.model, preset.acpAgent?.config?.reasoning_effort].filter(Boolean).join(" · ")
               : preset.model || ui("Not set")}
           </span>
         </div>
