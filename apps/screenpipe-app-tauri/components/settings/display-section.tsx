@@ -47,7 +47,7 @@ export function DisplaySection() {
   };
 
   const themeOptions = [
-    { value: "system" as const, label: gt("System"), icon: Monitor },
+    { value: "system" as const, label: gt("System default"), icon: Monitor },
     { value: "light" as const, label: gt("Light"), icon: Sun },
     { value: "dark" as const, label: gt("Dark"), icon: Moon },
   ];
